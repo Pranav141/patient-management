@@ -1,4 +1,4 @@
-package com.pm.patientservice;
+package com.pm.api_gateway;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -6,10 +6,10 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 
 @SpringBootApplication
 @EnableDiscoveryClient
-public class PatientSeviceApplication {
+public class ApiGatewayApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(PatientSeviceApplication.class, args);
+		SpringApplication.run(ApiGatewayApplication.class, args);
 	}
 
 }

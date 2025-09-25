@@ -1,0 +1,26 @@
+server:
+  port: 4000
+
+
+
+logging:
+  level:
+    root: info
+
+spring:
+  application:
+    name: patient-service
+  kafka:
+    bootstrap-servers: kafka:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.ByteArraySerializer
+    template:
+      default-topic: patient
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://discovery-service:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
