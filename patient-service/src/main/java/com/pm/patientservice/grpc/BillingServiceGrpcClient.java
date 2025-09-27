@@ -6,24 +6,43 @@ import io.grpc.ManagedChannelBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.client.ServiceInstance;
+import org.springframework.cloud.client.loadbalancer.LoadBalancerClient;
 import org.springframework.stereotype.Service;
+
+import javax.annotation.PostConstruct;
 
 @Service
 public class BillingServiceGrpcClient {
 
     private static final Logger log = LoggerFactory.getLogger(BillingServiceGrpcClient.class);
-    private final BillingServiceGrpc.BillingServiceBlockingStub blockingStub;
+    private  BillingServiceGrpc.BillingServiceBlockingStub blockingStub;
+    private final LoadBalancerClient loadBalancerClient;
 
-    public BillingServiceGrpcClient(
-            @Value("${billing.service.address:localhost}")String serverAddress,
-            @Value("${billing.service.grpc.port:9001}") int serverPort
-    ) {
-        log.info("Connecting to Billing Service Grpc service at {}:{}",serverAddress,serverPort);
-        ManagedChannel channel = ManagedChannelBuilder.forAddress(serverAddress,serverPort).usePlaintext().build();
-        blockingStub = BillingServiceGrpc.newBlockingStub(channel);
+    public BillingServiceGrpcClient(LoadBalancerClient loadBalancerClient) {
+        this.loadBalancerClient = loadBalancerClient;
     }
 
-    public BillingResponse createBillingAccount(String patientId,String name,String email)
+
+//  used to initialize a connection between billing service grpc and patientservice.
+    @PostConstruct
+    public void init(){
+        ServiceInstance instance = loadBalancerClient.choose("billing-service");
+        if(instance == null){
+            log.warn("No Instance of billing-service found");
+            throw new RuntimeException("No Instance of billing-service found");
+        }
+        String grpcPortStr = instance.getMetadata().get("grpc-port");
+        System.out.println(instance.getHost()+instance.getMetadata().get("grpc-port"));
+        int grpcPort = grpcPortStr != null ? Integer.parseInt(grpcPortStr) : instance.getPort();
+        ManagedChannel channel = ManagedChannelBuilder.forAddress(instance.getHost(),grpcPort)
+                .usePlaintext()
+                .build();
+
+        this.blockingStub = BillingServiceGrpc.newBlockingStub(channel);
+    }
+
+    public BillingResponse createBillingAccount(String patientId, String name, String email)
     {
 
         BillingRequest billingRequest = BillingRequest.newBuilder()

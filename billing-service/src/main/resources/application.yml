@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: billing-service
+
+server:
+  port: 4001
+
+
+grpc:
+  server:
+    port: 9001
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://discovery-service:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+
+  instance:
+    prefer-ip-address: true
+    hostname: ${HOSTNAME:localhost}
+    metadata-map:
+      grpc-port: 9001
+      http-port: 4001
+    instance-id: ${spring.application.name}:${HOSTNAME:${random.value}}:${server.port}
+
+
+
+

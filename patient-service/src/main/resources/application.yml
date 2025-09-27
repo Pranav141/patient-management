@@ -1,8 +1,6 @@
 server:
   port: 4000
 
-
-
 logging:
   level:
     root: info
@@ -24,3 +22,18 @@ eureka:
       defaultZone: http://discovery-service:8761/eureka/
     register-with-eureka: true
     fetch-registry: true
+
+  instance:
+    prefer-ip-address: true
+    hostname: ${HOSTNAME:localhost}
+    metadata-map:
+      http-port: 4000
+    instance-id: ${spring.application.name}:${HOSTNAME:${random.value}}:${server.port}
+
+management:
+  server:
+    port: 9000
+  endpoints:
+    web:
+      exposure:
+        include: "*"
