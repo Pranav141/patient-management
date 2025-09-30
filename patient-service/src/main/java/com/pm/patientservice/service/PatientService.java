@@ -1,8 +1,10 @@
 package com.pm.patientservice.service;
 
+import billing.BillingResponse;
 import billing.PatientBillingResponse;
 import com.pm.patientservice.dto.PatientRequestDTO;
 import com.pm.patientservice.dto.PatientResponseDTO;
+import com.pm.patientservice.exception.BillingAccountCreationException;
 import com.pm.patientservice.exception.EmailAlreadyExistsException;
 import com.pm.patientservice.exception.PatientNotFoundException;
 import com.pm.patientservice.grpc.BillingServiceGrpcClient;
@@ -10,13 +12,17 @@ import com.pm.patientservice.kafka.KafkaProducer;
 import com.pm.patientservice.mapper.PatientMapper;
 import com.pm.patientservice.model.Patient;
 import com.pm.patientservice.repository.PatientRepo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
 
 @Service
 public class PatientService {
+    private static final Logger log = LoggerFactory.getLogger(PatientService.class);
     private final PatientRepo patientRepo;
     private final BillingServiceGrpcClient billingServiceGrpcClient;
     private final KafkaProducer kafkaProducer;
@@ -34,13 +40,20 @@ public class PatientService {
 
     }
 
+    @Transactional
     public PatientResponseDTO createPatient(PatientRequestDTO patientRequestDTO){
         if(patientRepo.existsByEmail(patientRequestDTO.getEmail())){
             throw new EmailAlreadyExistsException("A Patient with this eamil already exist "+ patientRequestDTO.getEmail());
         }
         Patient patient = patientRepo.save(PatientMapper.toModel(patientRequestDTO));
         kafkaProducer.sendEvent(patient);
-        billingServiceGrpcClient.createBillingAccount(patient.getId().toString(),patient.getName(), patient.getEmail());
+        try{
+            BillingResponse response = billingServiceGrpcClient.createBillingAccount(patient.getId().toString(),patient.getName(), patient.getEmail());
+            log.info("Billing Response : {}",response.toString());
+        }catch (RuntimeException e){
+            log.warn("Rolling back the transaction for patient with email : {}",patientRequestDTO.getEmail());
+            throw new BillingAccountCreationException("Failed to create billing account for patient: " + patientRequestDTO.getEmail());
+        }
         return PatientMapper.toDTO(patient);
     }
 

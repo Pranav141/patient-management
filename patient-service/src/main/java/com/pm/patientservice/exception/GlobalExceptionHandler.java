@@ -31,6 +31,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(errors);
     }
 
+    @ExceptionHandler(BillingAccountCreationException.class)
+    public ResponseEntity<Map<String,String>> handleEmailException(BillingAccountCreationException ex){
+        Map<String,String> errors = new HashMap<>();
+        log.warn("Email already exist {}",ex.getMessage());
+        errors.put("message",ex.getMessage());
+        return ResponseEntity.badRequest().body(errors);
+    }
+
     @ExceptionHandler(PatientNotFoundException.class)
     public ResponseEntity<Map<String,String>> handleEmailException(PatientNotFoundException ex){
         Map<String,String> errors = new HashMap<>();
